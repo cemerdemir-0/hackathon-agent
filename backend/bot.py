@@ -1,17 +1,24 @@
 import os
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
-from crew import run_crew_query
+from agent import run_agent
 from dotenv import load_dotenv
 
 load_dotenv()
 
+_executor = ThreadPoolExecutor(max_workers=4)
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_msg = update.message.text
     customer = update.message.from_user.first_name
-    prompt = f"Müşteri adı: {customer}. Müşteri mesajı: {user_msg}. Kısa ve nazik Türkçe yanıt ver."
-    response = run_crew_query(prompt)
+    prompt = (
+        f"Müşteri adı {customer}. Şu soruyu sor: {user_msg}\n"
+        "Kısa ve nazik Türkçe yanıt ver. Soruyu tekrar etme."
+    )
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(_executor, run_agent, prompt)
     await update.message.reply_text(response)
 
 def start_bot():

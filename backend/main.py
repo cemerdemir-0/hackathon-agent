@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from agent import run_agent
-from crew import run_crew_query
+from crew import run_crew_report
 from scheduler import start_scheduler, notifications
 from bot import start_bot
 
@@ -27,7 +27,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 def chat(req: ChatRequest):
-    return {"response": run_crew_query(req.message)}
+    return {"response": run_agent(req.message)}
 
 @app.get("/notifications")
 def get_notifications():

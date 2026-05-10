@@ -4,7 +4,7 @@ from crewai.tools import tool
 from tools import (get_orders, get_stock, get_cargo_status,
                    get_critical_stock, draft_supplier_email, cancel_order)
 
-GEMINI_LLM = "gemini/gemini-2.5-flash-lite"
+GEMINI_LLM = "gemini/gemini-2.5-flash"
 
 @tool("Sipariş Listele")
 def tool_get_orders(status: str = "") -> str:
@@ -79,21 +79,18 @@ def run_crew_report() -> str:
 
 def run_crew_query(user_message: str) -> str:
     """Kullanıcı sorusunu uygun ajana yönlendir."""
-    is_stock = any(w in user_message.lower() for w in ["stok", "ürün", "tedarik", "malzeme"])
+    is_stock = any(w in user_message.lower() for w in ["stok", "ürün", "tedarik", "malzeme", "domates", "ekmek", "peynir", "zeytin"])
 
     agent = stock_agent if is_stock else order_agent
-    tools_used = [tool_get_stock, tool_get_critical, tool_draft_email] if is_stock else \
-                 [tool_get_orders, tool_get_cargo, tool_cancel_order]
 
     task = Task(
         description=(
-            f"Kullanıcı sorusu: {user_message}\n"
-            "ZORUNLU: Cevap vermeden önce mutlaka ilgili tool'u çağır ve gerçek veriyi al. "
-            "Tahmin etme, 'kontrol ediyorum' gibi belirsiz cevap verme. "
-            "Tool sonucuna dayanarak kısa, net Türkçe cevap ver."
+            "Aşağıdaki soruyu yanıtla. Mutlaka tool çağır, gerçek veri getir, Türkçe cevap ver.\n\n"
+            f"Soru: {user_message}"
         ),
-        expected_output="Gerçek veriye dayalı kısa Türkçe cevap. Tool çağrılmadan cevap verilmez.",
+        expected_output="Tool sonucuna dayanan kısa Türkçe cevap. Maksimum 3 cümle.",
         agent=agent,
     )
     crew = Crew(agents=[agent], tasks=[task], process=Process.sequential)
-    return str(crew.kickoff())
+    result = crew.kickoff()
+    return str(result.raw) if hasattr(result, 'raw') else str(result)

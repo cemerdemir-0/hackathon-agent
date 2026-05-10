@@ -78,19 +78,26 @@ TOOLS = types.Tool(function_declarations=[
 SYSTEM_PROMPT = (
     "Sen bir KOBİ işletme yöneticisinin yapay zeka asistanısın. "
     "Türkçe soruları anlayarak ilgili araçları çağır ve kısa, net Türkçe cevaplar ver. "
-    "Stok, sipariş ve kargo konularında uzmanısın. Her zaman gerçek verilere dayalı cevap ver."
+    "Stok, sipariş ve kargo konularında uzmanısın. Her zaman gerçek verilere dayalı cevap ver. "
+    "Selamlama, teşekkür, küçük konuşma gibi durumlarda tool çağırma, doğrudan nazikçe cevap ver."
 )
+
+BUSINESS_KEYWORDS = ["stok", "sipariş", "kargo", "ürün", "tedarik", "domates", "ekmek",
+                     "peynir", "zeytin", "teslimat", "iptal", "bekliyor", "nerede", "kaç"]
+
+def _needs_tools(message: str) -> bool:
+    return any(w in message.lower() for w in BUSINESS_KEYWORDS)
 
 def run_agent(user_message: str) -> str:
     contents = [types.Content(role="user", parts=[types.Part(text=user_message)])]
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM_PROMPT,
-        tools=[TOOLS],
+        tools=[TOOLS] if _needs_tools(user_message) else [],
     )
 
     while True:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.5-flash",
             contents=contents,
             config=config,
         )
