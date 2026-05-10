@@ -1,3 +1,5 @@
+import { exportReport } from '../utils/exportPdf'
+
 const API = 'http://localhost:8000'
 
 export default function StatsBar({ orders, stock, onTriggerReport, reporting }) {
@@ -105,6 +107,50 @@ export default function StatsBar({ orders, stock, onTriggerReport, reporting }) 
           color: 'var(--text-3)',
         }}>
           Multi-agent rapor
+        </span>
+      </div>
+
+      {/* PDF Export */}
+      <div className="fade-up" style={{
+        animationDelay: '0.25s',
+        background: 'var(--surface)',
+        border: '1px solid var(--border)',
+        borderRadius: '10px',
+        padding: '16px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      }}
+        onClick={() => exportReport(orders, stock)}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(110,181,255,0.4)'; e.currentTarget.style.background = 'rgba(110,181,255,0.04)' }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface)' }}
+      >
+        <span style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '10px',
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: 'var(--text-3)',
+        }}>
+          PDF İndir
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '24px',
+          fontWeight: 700,
+          color: '#6eb5ff',
+          lineHeight: 1,
+        }}>
+          ↓
+        </span>
+        <span style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: '10px',
+          color: 'var(--text-3)',
+        }}>
+          Stok + sipariş raporu
         </span>
       </div>
     </div>

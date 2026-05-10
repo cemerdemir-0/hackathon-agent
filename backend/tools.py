@@ -1,4 +1,7 @@
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -49,3 +52,22 @@ def cancel_order(order_id: str) -> dict:
     """Siparişi iptal eder."""
     supabase.table("orders").update({"status": "cancelled"}).eq("id", order_id).execute()
     return {"success": True, "message": f"{order_id} no'lu sipariş iptal edildi"}
+
+def send_supplier_email(to_email: str, subject: str, body: str) -> dict:
+    """Tedarikçiye Gmail SMTP ile mail gönderir."""
+    gmail_user = os.getenv("GMAIL_USER")
+    gmail_pass = os.getenv("GMAIL_APP_PASSWORD")
+    if not gmail_user or not gmail_pass:
+        return {"success": False, "error": "Gmail credentials eksik"}
+    try:
+        msg = MIMEMultipart()
+        msg["From"]    = gmail_user
+        msg["To"]      = to_email
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(gmail_user, gmail_pass)
+            server.sendmail(gmail_user, to_email, msg.as_string())
+        return {"success": True, "message": f"Mail gönderildi: {to_email}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}

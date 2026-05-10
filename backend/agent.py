@@ -1,11 +1,11 @@
 import os
 import json
-from google import genai
-from google.genai import types
+from groq import Groq
 from tools import (get_orders, get_stock, get_cargo_status,
-                   get_critical_stock, draft_supplier_email, cancel_order)
+                   get_critical_stock, draft_supplier_email, cancel_order, send_supplier_email)
 
-client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+MODEL = "llama-3.3-70b-versatile"
 
 TOOL_MAP = {
     "get_orders": get_orders,
@@ -14,66 +14,101 @@ TOOL_MAP = {
     "get_critical_stock": get_critical_stock,
     "draft_supplier_email": draft_supplier_email,
     "cancel_order": cancel_order,
+    "send_supplier_email": send_supplier_email,
 }
 
-TOOLS = types.Tool(function_declarations=[
-    types.FunctionDeclaration(
-        name="get_orders",
-        description="Siparişleri listeler. Status: pending, shipped, delivered, cancelled",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "status": types.Schema(type=types.Type.STRING, description="Sipariş durumu filtresi (opsiyonel)")
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_orders",
+            "description": "Siparişleri listeler. Status: pending, shipped, delivered, cancelled",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string", "description": "Sipariş durumu filtresi (opsiyonel)"}
+                }
             }
-        )
-    ),
-    types.FunctionDeclaration(
-        name="get_stock",
-        description="Stok seviyelerini getirir.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "product_name": types.Schema(type=types.Type.STRING, description="Ürün adı (opsiyonel)")
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_stock",
+            "description": "Stok seviyelerini getirir.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "product_name": {"type": "string", "description": "Ürün adı (opsiyonel)"}
+                }
             }
-        )
-    ),
-    types.FunctionDeclaration(
-        name="get_cargo_status",
-        description="Sipariş ID'sine göre kargo durumunu getirir.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={"order_id": types.Schema(type=types.Type.STRING)},
-            required=["order_id"]
-        )
-    ),
-    types.FunctionDeclaration(
-        name="get_critical_stock",
-        description="Eşik altına düşen kritik stokları listeler.",
-        parameters=types.Schema(type=types.Type.OBJECT, properties={})
-    ),
-    types.FunctionDeclaration(
-        name="draft_supplier_email",
-        description="Tedarikçiye stok yenileme mail taslağı oluşturur.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "product": types.Schema(type=types.Type.STRING),
-                "quantity": types.Schema(type=types.Type.INTEGER),
-                "supplier_email": types.Schema(type=types.Type.STRING),
-            },
-            required=["product", "quantity", "supplier_email"]
-        )
-    ),
-    types.FunctionDeclaration(
-        name="cancel_order",
-        description="Belirtilen siparişi iptal eder.",
-        parameters=types.Schema(
-            type=types.Type.OBJECT,
-            properties={"order_id": types.Schema(type=types.Type.STRING)},
-            required=["order_id"]
-        )
-    ),
-])
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_cargo_status",
+            "description": "Sipariş ID'sine göre kargo durumunu getirir.",
+            "parameters": {
+                "type": "object",
+                "properties": {"order_id": {"type": "string"}},
+                "required": ["order_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_critical_stock",
+            "description": "Eşik altına düşen kritik stokları listeler.",
+            "parameters": {"type": "object", "properties": {}}
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "draft_supplier_email",
+            "description": "Tedarikçiye stok yenileme mail taslağı oluşturur.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "product": {"type": "string"},
+                    "quantity": {"type": "integer"},
+                    "supplier_email": {"type": "string"},
+                },
+                "required": ["product", "quantity", "supplier_email"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cancel_order",
+            "description": "Belirtilen siparişi iptal eder.",
+            "parameters": {
+                "type": "object",
+                "properties": {"order_id": {"type": "string"}},
+                "required": ["order_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_supplier_email",
+            "description": "Belirtilen e-posta adresine Gmail ile mail gönderir. Kullanıcı farklı bir adres verirse onu kullan.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "to_email":  {"type": "string", "description": "Alıcı e-posta adresi"},
+                    "subject":   {"type": "string", "description": "Mail konusu"},
+                    "body":      {"type": "string", "description": "Mail içeriği"},
+                },
+                "required": ["to_email", "subject", "body"]
+            }
+        }
+    },
+]
 
 SYSTEM_PROMPT = (
     "Sen bir KOBİ işletme yöneticisinin yapay zeka asistanısın. "
@@ -83,43 +118,40 @@ SYSTEM_PROMPT = (
 )
 
 BUSINESS_KEYWORDS = ["stok", "sipariş", "kargo", "ürün", "tedarik", "domates", "ekmek",
-                     "peynir", "zeytin", "teslimat", "iptal", "bekliyor", "nerede", "kaç"]
+                     "peynir", "zeytin", "teslimat", "iptal", "bekliyor", "nerede", "kaç",
+                     "mail", "e-posta", "gönder", "@"]
 
 def _needs_tools(message: str) -> bool:
     return any(w in message.lower() for w in BUSINESS_KEYWORDS)
 
 def run_agent(user_message: str) -> str:
-    contents = [types.Content(role="user", parts=[types.Part(text=user_message)])]
-    config = types.GenerateContentConfig(
-        system_instruction=SYSTEM_PROMPT,
-        tools=[TOOLS] if _needs_tools(user_message) else [],
-    )
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_message},
+    ]
+    tools = TOOLS if _needs_tools(user_message) else None
 
     while True:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=config,
-        )
+        kwargs = {"model": MODEL, "messages": messages}
+        if tools:
+            kwargs["tools"] = tools
+            kwargs["tool_choice"] = "auto"
+        response = client.chat.completions.create(**kwargs)
 
-        fn_calls = [p.function_call for p in response.candidates[0].content.parts
-                    if hasattr(p, "function_call") and p.function_call]
+        msg = response.choices[0].message
+        tool_calls = msg.tool_calls
 
-        if not fn_calls:
-            return response.text
+        if not tool_calls:
+            return msg.content
 
-        contents.append(response.candidates[0].content)
+        messages.append({"role": "assistant", "content": msg.content, "tool_calls": tool_calls})
 
-        fn_response_parts = []
-        for fn_call in fn_calls:
-            fn = TOOL_MAP.get(fn_call.name)
-            args = dict(fn_call.args) if fn_call.args else {}
+        for tc in tool_calls:
+            fn = TOOL_MAP.get(tc.function.name)
+            args = json.loads(tc.function.arguments) if tc.function.arguments else {}
             result = fn(**args) if fn else {"error": "Tool bulunamadı"}
-            fn_response_parts.append(types.Part(
-                function_response=types.FunctionResponse(
-                    name=fn_call.name,
-                    response={"result": json.dumps(result, ensure_ascii=False)}
-                )
-            ))
-
-        contents.append(types.Content(role="user", parts=fn_response_parts))
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tc.id,
+                "content": json.dumps(result, ensure_ascii=False),
+            })

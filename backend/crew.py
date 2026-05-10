@@ -4,7 +4,7 @@ from crewai.tools import tool
 from tools import (get_orders, get_stock, get_cargo_status,
                    get_critical_stock, draft_supplier_email, cancel_order)
 
-GEMINI_LLM = "gemini/gemini-2.5-flash"
+GROQ_LLM = "groq/llama-3.3-70b-versatile"
 
 @tool("Sipariş Listele")
 def tool_get_orders(status: str = "") -> str:
@@ -22,8 +22,8 @@ def tool_get_cargo(order_id: str) -> str:
     return str(get_cargo_status(order_id))
 
 @tool("Kritik Stok Listele")
-def tool_get_critical() -> str:
-    """Eşik altına düşen kritik stokları listeler."""
+def tool_get_critical(filtre: str = "") -> str:
+    """Eşik altına düşen kritik stokları listeler. filtre parametresi kullanılmaz."""
     return str(get_critical_stock())
 
 @tool("Tedarikçi Mail Taslağı")
@@ -43,7 +43,7 @@ stock_agent = Agent(
     backstory="KOBİ stok yönetiminde uzman. Eşik altı stokları anında fark eder, tedarik zincirini yönetir.",
     tools=[tool_get_stock, tool_get_critical, tool_draft_email],
     verbose=True,
-    llm=GEMINI_LLM,
+    llm=GROQ_LLM,
 )
 
 order_agent = Agent(
@@ -52,7 +52,7 @@ order_agent = Agent(
     backstory="Sipariş yönetimi ve müşteri memnuniyeti konusunda uzman. Geciken kargolar için anında aksiyon alır.",
     tools=[tool_get_orders, tool_get_cargo, tool_cancel_order],
     verbose=True,
-    llm=GEMINI_LLM,
+    llm=GROQ_LLM,
 )
 
 
@@ -80,7 +80,9 @@ def run_crew_report() -> str:
         verbose=True,
     )
     result = crew.kickoff()
-    return str(result.raw) if hasattr(result, 'raw') else str(result)
+    stock_out = stock_task.output.raw if stock_task.output else ""
+    order_out = result.raw if hasattr(result, 'raw') else str(result)
+    return f"📦 STOK RAPORU:\n{stock_out}\n\n📋 SİPARİŞ RAPORU:\n{order_out}"
 
 
 def run_crew_query(user_message: str) -> str:
