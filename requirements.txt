@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+google-generativeai
+crewai
+litellm
+supabase
+apscheduler
+python-telegram-bot
+python-dotenv
+pydantic
