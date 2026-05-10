@@ -64,9 +64,14 @@ def run_crew_report() -> str:
         agent=stock_agent,
     )
     order_task = Task(
-        description="Bekleyen ve kargodaki siparişleri listele. Geciken var mı kontrol et. Türkçe özet ver.",
-        expected_output="Aktif siparişlerin durumu. Türkçe, kısa.",
+        description=(
+            "Siparişleri listele. Önce status='pending' ile bekleyenleri, sonra status='shipped' ile "
+            "kargodakileri sorgula (İngilizce status değerleri kullan). Geciken var mı kontrol et. "
+            "Önceki stok raporunu da ekleyerek Türkçe özet ver."
+        ),
+        expected_output="Stok + sipariş durumunun birleşik Türkçe özeti. Kısa.",
         agent=order_agent,
+        context=[stock_task],
     )
     crew = Crew(
         agents=[stock_agent, order_agent],
@@ -74,7 +79,8 @@ def run_crew_report() -> str:
         process=Process.sequential,
         verbose=True,
     )
-    return str(crew.kickoff())
+    result = crew.kickoff()
+    return str(result.raw) if hasattr(result, 'raw') else str(result)
 
 
 def run_crew_query(user_message: str) -> str:

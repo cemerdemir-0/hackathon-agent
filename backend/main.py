@@ -47,6 +47,19 @@ def get_stock_endpoint():
 def health():
     return {"status": "ok"}
 
+@app.post("/trigger-report")
+def trigger_report():
+    from scheduler import morning_report
+    import threading
+    threading.Thread(target=morning_report, daemon=True).start()
+    return {"status": "triggered"}
+
+@app.put("/stock/{product}")
+def update_stock(product: str, body: dict):
+    from tools import supabase
+    supabase.table("stock").update({"quantity": body["quantity"]}).eq("product", product).execute()
+    return {"status": "updated"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

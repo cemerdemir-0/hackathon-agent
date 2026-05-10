@@ -2,9 +2,16 @@ import { useState, useRef, useEffect } from 'react'
 
 const API = 'http://localhost:8000'
 
+const SUGGESTIONS = [
+  'Kritik stoklar neler?',
+  '128 nolu sipariş nerede?',
+  'Bekleyen siparişleri listele',
+  'Domates tedarikçisine mail yaz',
+]
+
 export default function ChatInterface() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Stok, sipariş veya kargo hakkında soru sorabilirsiniz.' }
+    { role: 'assistant', text: 'Merhaba. Stok, sipariş ve kargo konularında size yardımcı olabilirim.' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -13,10 +20,10 @@ export default function ChatInterface() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, loading])
 
-  const send = async () => {
-    const msg = input.trim()
+  const send = async (text) => {
+    const msg = (text || input).trim()
     if (!msg || loading) return
     setInput('')
     setMessages(prev => [...prev, { role: 'user', text: msg }])
@@ -37,176 +44,164 @@ export default function ChatInterface() {
     }
   }
 
+  const showSuggestions = messages.length <= 1
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '420px' }}>
-      {/* Header */}
-      <div style={{
-        padding: '20px 32px',
-        borderBottom: '1px solid var(--gray-200)',
-        display: 'flex',
-        alignItems: 'baseline',
-        gap: '16px',
-      }}>
-        <span style={{
-          fontFamily: "'Cormorant Garamond', serif",
-          fontSize: '20px',
-          fontWeight: 300,
-          letterSpacing: '0.05em',
-        }}>
-          Ajan
-        </span>
-        <span style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: '9px',
-          letterSpacing: '0.2em',
-          color: loading ? 'var(--black)' : 'var(--gray-400)',
-          textTransform: 'uppercase',
-          transition: 'color 0.3s',
-        }}>
-          {loading ? 'Düşünüyor...' : 'Hazır'}
-        </span>
-        <div style={{
-          width: '5px', height: '5px',
-          borderRadius: '50%',
-          background: loading ? 'var(--black)' : 'var(--gray-200)',
-          transition: 'background 0.3s',
-          animation: loading ? 'pulse-border 1s infinite' : 'none',
-          marginLeft: 'auto',
-        }} />
-      </div>
 
       {/* Messages */}
       <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '24px 32px',
+        flex: 1, overflowY: 'auto',
+        padding: '16px 20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: '12px',
       }}>
         {messages.map((m, i) => (
-          <div
-            key={i}
-            className="animate-fade-up"
-            style={{
-              display: 'flex',
-              justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
-              animationDelay: '0s',
-              opacity: 0,
-              animationFillMode: 'forwards',
-            }}
-          >
+          <div key={i} className="fade-up" style={{
+            display: 'flex',
+            gap: '10px',
+            justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+            animationDelay: '0s',
+          }}>
             {m.role === 'assistant' && (
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '9px',
-                letterSpacing: '0.15em',
-                color: 'var(--gray-400)',
-                textTransform: 'uppercase',
-                marginRight: '12px',
-                paddingTop: '3px',
-                flexShrink: 0,
+              <div style={{
+                width: '24px', height: '24px', borderRadius: '6px',
+                background: 'var(--accent)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, marginTop: '2px',
               }}>
-                Ajan
-              </span>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <circle cx="5" cy="5" r="3.5" stroke="#000" strokeWidth="1.2"/>
+                  <path d="M5 3v2l1.5 1" stroke="#000" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              </div>
             )}
             <div style={{
-              maxWidth: '60%',
-              padding: '12px 16px',
-              background: m.role === 'user' ? 'var(--black)' : 'var(--gray-100)',
-              color: m.role === 'user' ? 'var(--white)' : 'var(--black)',
-              fontFamily: "'DM Mono', monospace",
+              maxWidth: '75%',
+              padding: '10px 14px',
+              background: m.role === 'user' ? 'var(--accent)' : 'var(--surface2)',
+              border: `1px solid ${m.role === 'user' ? 'transparent' : 'var(--border)'}`,
+              borderRadius: m.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+              fontFamily: 'var(--font-mono)',
               fontSize: '12px',
               fontWeight: 300,
               lineHeight: 1.7,
-              letterSpacing: '0.01em',
+              color: m.role === 'user' ? '#000' : 'var(--text-2)',
             }}>
               {m.text}
             </div>
-            {m.role === 'user' && (
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: '9px',
-                letterSpacing: '0.15em',
-                color: 'var(--gray-400)',
-                textTransform: 'uppercase',
-                marginLeft: '12px',
-                paddingTop: '3px',
-                flexShrink: 0,
-              }}>
-                Siz
-              </span>
-            )}
           </div>
         ))}
+
         {loading && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: '9px',
-              letterSpacing: '0.15em',
-              color: 'var(--gray-400)',
-              textTransform: 'uppercase',
-            }}>Ajan</span>
-            <div style={{ display: 'flex', gap: '4px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+            <div style={{
+              width: '24px', height: '24px', borderRadius: '6px',
+              background: 'var(--accent)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <circle cx="5" cy="5" r="3.5" stroke="#000" strokeWidth="1.2"/>
+                <path d="M5 3v2l1.5 1" stroke="#000" strokeWidth="1.2" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div style={{
+              padding: '10px 14px',
+              background: 'var(--surface2)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px 12px 12px 4px',
+              display: 'flex', gap: '5px', alignItems: 'center',
+            }}>
               {[0,1,2].map(j => (
-                <div key={j} style={{
-                  width: '4px', height: '4px',
-                  background: 'var(--gray-400)',
-                  borderRadius: '50%',
-                  animation: `fadeUp 0.8s ease ${j * 0.15}s infinite alternate`,
-                }} />
+                <span key={j} style={{
+                  width: '5px', height: '5px', borderRadius: '50%',
+                  background: 'var(--text-3)',
+                  display: 'block',
+                  animation: `pulse 1.2s ease ${j * 0.2}s infinite`,
+                }}/>
               ))}
             </div>
           </div>
         )}
+
+        {/* Suggestions */}
+        {showSuggestions && !loading && (
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: '6px',
+            marginTop: '4px', paddingLeft: '34px',
+          }}>
+            {SUGGESTIONS.map((s, i) => (
+              <button key={i} onClick={() => send(s)} style={{
+                padding: '5px 10px',
+                background: 'transparent',
+                border: '1px solid var(--border2)',
+                borderRadius: '6px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '11px',
+                color: 'var(--text-3)',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+                onMouseEnter={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.color = 'var(--accent)' }}
+                onMouseLeave={e => { e.target.style.borderColor = 'var(--border2)'; e.target.style.color = 'var(--text-3)' }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
       <div style={{
-        borderTop: '1px solid var(--black)',
+        borderTop: '1px solid var(--border)',
         display: 'flex',
-        alignItems: 'stretch',
+        alignItems: 'center',
+        padding: '0 4px 0 16px',
+        gap: '8px',
+        height: '52px',
       }}>
         <input
           ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && send()}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
           disabled={loading}
-          placeholder="Mesajınızı yazın..."
+          placeholder="Bir şeyler sorun..."
           style={{
             flex: 1,
-            padding: '20px 32px',
+            background: 'transparent',
             border: 'none',
             outline: 'none',
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '12px',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '13px',
             fontWeight: 300,
-            color: 'var(--black)',
-            background: 'var(--white)',
+            color: 'var(--text-1)',
             letterSpacing: '0.01em',
           }}
         />
         <button
-          onClick={send}
+          onClick={() => send()}
           disabled={loading || !input.trim()}
           style={{
-            padding: '0 32px',
-            background: loading || !input.trim() ? 'var(--gray-200)' : 'var(--black)',
-            color: loading || !input.trim() ? 'var(--gray-400)' : 'var(--white)',
+            width: '36px', height: '36px',
+            borderRadius: '8px',
             border: 'none',
-            borderLeft: '1px solid var(--black)',
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '9px',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
+            background: loading || !input.trim() ? 'var(--surface2)' : 'var(--accent)',
+            color: loading || !input.trim() ? 'var(--text-3)' : '#000',
             cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
-            transition: 'background 0.2s, color 0.2s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s',
+            flexShrink: 0,
           }}
         >
-          Gönder
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
         </button>
       </div>
     </div>

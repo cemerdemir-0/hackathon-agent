@@ -2,11 +2,24 @@ import { useEffect, useState } from 'react'
 import OrderList from './OrderList'
 import StockTable from './StockTable'
 import ChatInterface from './ChatInterface'
+import StatsBar from './StatsBar'
+import ChartsPanel from './ChartsPanel'
 
 const API = 'http://localhost:8000'
 
 export default function Dashboard() {
   const [notifications, setNotifications] = useState([])
+  const [orders, setOrders] = useState([])
+  const [stock, setStock] = useState([])
+  const [reporting, setReporting] = useState(false)
+
+  const handleTriggerReport = async () => {
+    setReporting(true)
+    try {
+      await fetch(`${API}/trigger-report`, { method: 'POST' })
+    } catch {}
+    setTimeout(() => setReporting(false), 8000)
+  }
 
   useEffect(() => {
     const poll = async () => {
@@ -22,109 +35,112 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* Notifications */}
       {notifications.length > 0 && (
-        <div style={{ marginBottom: '48px' }}>
-          <div style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: '9px',
-            letterSpacing: '0.25em',
-            color: 'var(--gray-400)',
-            textTransform: 'uppercase',
-            marginBottom: '12px',
-          }}>
-            Sistem Bildirimleri — {notifications.length}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-            {notifications.slice(-3).map((n, i) => (
-              <div
-                key={i}
-                className="animate-slide-in"
-                style={{
-                  padding: '16px 20px',
-                  background: n.type === 'stock_alert' ? '#c0392b' : 'var(--black)',
-                  color: 'var(--white)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '16px',
-                  animationDelay: `${i * 0.08}s`,
-                  opacity: 0,
-                }}
-              >
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: '9px',
-                  letterSpacing: '0.2em',
-                  textTransform: 'uppercase',
-                  color: 'rgba(255,255,255,0.5)',
-                  flexShrink: 0,
-                  paddingTop: '2px',
-                }}>
-                  {n.type === 'stock_alert' ? 'Stok' : 'Rapor'}
-                </span>
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: '11px',
-                  lineHeight: 1.6,
-                  color: 'rgba(255,255,255,0.9)',
-                }}>
-                  {n.message}
-                </span>
-              </div>
-            ))}
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {notifications.slice(-3).map((n, i) => (
+            <div key={i} className="fade-up" style={{
+              animationDelay: `${i * 0.06}s`,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              padding: '12px 16px',
+              background: n.type === 'stock_alert'
+                ? 'rgba(224,90,78,0.08)'
+                : 'rgba(232,169,77,0.08)',
+              border: `1px solid ${n.type === 'stock_alert' ? 'rgba(224,90,78,0.2)' : 'rgba(232,169,77,0.2)'}`,
+              borderRadius: '8px',
+            }}>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '10px',
+                letterSpacing: '0.08em',
+                color: n.type === 'stock_alert' ? 'var(--danger)' : 'var(--accent)',
+                flexShrink: 0,
+                paddingTop: '1px',
+                textTransform: 'uppercase',
+              }}>
+                {n.type === 'stock_alert' ? '⚠ Stok' : '◆ Rapor'}
+              </span>
+              <span style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '12px',
+                color: 'var(--text-2)',
+                lineHeight: 1.6,
+              }}>
+                {n.message}
+              </span>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Section label */}
-      <SectionDivider label="Operasyon Özeti" />
+      {/* Stats */}
+      <StatsBar
+        orders={orders}
+        stock={stock}
+        onTriggerReport={handleTriggerReport}
+        reporting={reporting}
+      />
 
-      {/* Tables row */}
+      {/* Charts */}
+      <ChartsPanel orders={orders} stock={stock} />
+
+      {/* Main grid — responsive */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1px',
-        background: 'var(--black)',
-        border: '1px solid var(--black)',
-        marginBottom: '1px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 480px), 1fr))',
+        gap: '16px',
       }}>
-        <div style={{ background: 'var(--white)' }}>
-          <OrderList />
-        </div>
-        <div style={{ background: 'var(--white)' }}>
-          <StockTable />
-        </div>
+        <Panel label="Siparişler">
+          <OrderList onDataLoad={setOrders} />
+        </Panel>
+        <Panel label="Stok Durumu">
+          <StockTable onDataLoad={setStock} />
+        </Panel>
       </div>
 
-      {/* Chat */}
-      <div style={{ border: '1px solid var(--black)', borderTop: 'none' }}>
+      <Panel label="Yapay Zeka Asistan">
         <ChatInterface />
-      </div>
+      </Panel>
     </div>
   )
 }
 
-function SectionDivider({ label }) {
+function Panel({ label, children }) {
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px',
-      marginBottom: '24px',
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: '10px',
+      overflow: 'hidden',
     }}>
-      <span style={{
-        fontFamily: "'DM Mono', monospace",
-        fontSize: '9px',
-        letterSpacing: '0.25em',
-        color: 'var(--gray-400)',
-        textTransform: 'uppercase',
-        flexShrink: 0,
+      <div style={{
+        padding: '12px 20px',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
       }}>
-        {label}
-      </span>
-      <div style={{ flex: 1, height: '1px', background: 'var(--gray-200)' }} />
+        <span style={{
+          width: '6px', height: '6px',
+          borderRadius: '50%',
+          background: 'var(--accent)',
+          flexShrink: 0,
+        }}/>
+        <span style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: '13px',
+          fontWeight: 500,
+          color: 'var(--text-1)',
+          letterSpacing: '-0.01em',
+        }}>
+          {label}
+        </span>
+      </div>
+      {children}
     </div>
   )
 }
