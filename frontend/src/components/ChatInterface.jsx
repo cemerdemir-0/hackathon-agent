@@ -4,11 +4,12 @@ const API = 'http://localhost:8000'
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Merhaba! Stok, sipariş veya kargo hakkında soru sorabilirsiniz.' }
+    { role: 'assistant', text: 'Stok, sipariş veya kargo hakkında soru sorabilirsiniz.' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
+  const inputRef = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -32,46 +33,178 @@ export default function ChatInterface() {
       setMessages(prev => [...prev, { role: 'assistant', text: 'Bağlantı hatası. Backend çalışıyor mu?' }])
     } finally {
       setLoading(false)
+      inputRef.current?.focus()
     }
   }
 
   return (
-    <div className="bg-white rounded shadow p-4">
-      <h2 className="text-lg font-semibold mb-3">Ajan ile Konuş</h2>
-      <div className="h-64 overflow-y-auto space-y-2 mb-3 border rounded p-3 bg-gray-50">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '420px' }}>
+      {/* Header */}
+      <div style={{
+        padding: '20px 32px',
+        borderBottom: '1px solid var(--gray-200)',
+        display: 'flex',
+        alignItems: 'baseline',
+        gap: '16px',
+      }}>
+        <span style={{
+          fontFamily: "'Cormorant Garamond', serif",
+          fontSize: '20px',
+          fontWeight: 300,
+          letterSpacing: '0.05em',
+        }}>
+          Ajan
+        </span>
+        <span style={{
+          fontFamily: "'DM Mono', monospace",
+          fontSize: '9px',
+          letterSpacing: '0.2em',
+          color: loading ? 'var(--black)' : 'var(--gray-400)',
+          textTransform: 'uppercase',
+          transition: 'color 0.3s',
+        }}>
+          {loading ? 'Düşünüyor...' : 'Hazır'}
+        </span>
+        <div style={{
+          width: '5px', height: '5px',
+          borderRadius: '50%',
+          background: loading ? 'var(--black)' : 'var(--gray-200)',
+          transition: 'background 0.3s',
+          animation: loading ? 'pulse-border 1s infinite' : 'none',
+          marginLeft: 'auto',
+        }} />
+      </div>
+
+      {/* Messages */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '24px 32px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+      }}>
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg text-sm ${
-              m.role === 'user'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border text-gray-800'
-            }`}>
+          <div
+            key={i}
+            className="animate-fade-up"
+            style={{
+              display: 'flex',
+              justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+              animationDelay: '0s',
+              opacity: 0,
+              animationFillMode: 'forwards',
+            }}
+          >
+            {m.role === 'assistant' && (
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '9px',
+                letterSpacing: '0.15em',
+                color: 'var(--gray-400)',
+                textTransform: 'uppercase',
+                marginRight: '12px',
+                paddingTop: '3px',
+                flexShrink: 0,
+              }}>
+                Ajan
+              </span>
+            )}
+            <div style={{
+              maxWidth: '60%',
+              padding: '12px 16px',
+              background: m.role === 'user' ? 'var(--black)' : 'var(--gray-100)',
+              color: m.role === 'user' ? 'var(--white)' : 'var(--black)',
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '12px',
+              fontWeight: 300,
+              lineHeight: 1.7,
+              letterSpacing: '0.01em',
+            }}>
               {m.text}
             </div>
+            {m.role === 'user' && (
+              <span style={{
+                fontFamily: "'DM Mono', monospace",
+                fontSize: '9px',
+                letterSpacing: '0.15em',
+                color: 'var(--gray-400)',
+                textTransform: 'uppercase',
+                marginLeft: '12px',
+                paddingTop: '3px',
+                flexShrink: 0,
+              }}>
+                Siz
+              </span>
+            )}
           </div>
         ))}
         {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white border text-gray-400 px-3 py-2 rounded-lg text-sm">
-              Düşünüyor...
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: '9px',
+              letterSpacing: '0.15em',
+              color: 'var(--gray-400)',
+              textTransform: 'uppercase',
+            }}>Ajan</span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {[0,1,2].map(j => (
+                <div key={j} style={{
+                  width: '4px', height: '4px',
+                  background: 'var(--gray-400)',
+                  borderRadius: '50%',
+                  animation: `fadeUp 0.8s ease ${j * 0.15}s infinite alternate`,
+                }} />
+              ))}
             </div>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
-      <div className="flex gap-2">
+
+      {/* Input */}
+      <div style={{
+        borderTop: '1px solid var(--black)',
+        display: 'flex',
+        alignItems: 'stretch',
+      }}>
         <input
-          className="flex-1 border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="Mesajınızı yazın..."
+          ref={inputRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}
           disabled={loading}
+          placeholder="Mesajınızı yazın..."
+          style={{
+            flex: 1,
+            padding: '20px 32px',
+            border: 'none',
+            outline: 'none',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: '12px',
+            fontWeight: 300,
+            color: 'var(--black)',
+            background: 'var(--white)',
+            letterSpacing: '0.01em',
+          }}
         />
         <button
           onClick={send}
-          disabled={loading}
-          className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+          disabled={loading || !input.trim()}
+          style={{
+            padding: '0 32px',
+            background: loading || !input.trim() ? 'var(--gray-200)' : 'var(--black)',
+            color: loading || !input.trim() ? 'var(--gray-400)' : 'var(--white)',
+            border: 'none',
+            borderLeft: '1px solid var(--black)',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: '9px',
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+            cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+            transition: 'background 0.2s, color 0.2s',
+          }}
         >
           Gönder
         </button>

@@ -1,5 +1,5 @@
 import os
-import threading
+import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 from crew import run_crew_query
@@ -15,6 +15,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(response)
 
 def start_bot():
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     app = ApplicationBuilder().token(os.getenv("TELEGRAM_BOT_TOKEN")).build()
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.run_polling()

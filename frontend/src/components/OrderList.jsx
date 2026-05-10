@@ -2,62 +2,136 @@ import { useEffect, useState } from 'react'
 
 const API = 'http://localhost:8000'
 
-const STATUS_STYLES = {
-  pending:   'bg-yellow-100 text-yellow-800',
-  shipped:   'bg-blue-100 text-blue-800',
-  delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
-}
-
-const STATUS_LABELS = {
-  pending:   'Bekliyor',
-  shipped:   'Kargoda',
-  delivered: 'Teslim',
-  cancelled: 'İptal',
+const STATUS_META = {
+  pending:   { label: 'Bekliyor', dot: 'var(--gray-400)' },
+  shipped:   { label: 'Kargoda',  dot: 'var(--black)' },
+  delivered: { label: 'Teslim',   dot: 'var(--black)' },
+  cancelled: { label: 'İptal',    dot: '#c0392b' },
 }
 
 export default function OrderList() {
   const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetch(`${API}/orders`)
       .then(r => r.json())
-      .then(setOrders)
-      .catch(() => {})
+      .then(d => { setOrders(d); setLoading(false) })
+      .catch(() => setLoading(false))
   }, [])
 
   return (
-    <div className="bg-white rounded shadow p-4">
-      <h2 className="text-lg font-semibold mb-3">Siparişler</h2>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-gray-500 border-b">
-              <th className="pb-2">ID</th>
-              <th className="pb-2">Müşteri</th>
-              <th className="pb-2">Ürün</th>
-              <th className="pb-2">Durum</th>
-              <th className="pb-2">Tarih</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(o => (
-              <tr key={o.id} className="border-b last:border-0">
-                <td className="py-2 font-mono">#{o.id}</td>
-                <td className="py-2">{o.customer}</td>
-                <td className="py-2">{o.product}</td>
-                <td className="py-2">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_STYLES[o.status] || 'bg-gray-100 text-gray-800'}`}>
-                    {STATUS_LABELS[o.status] || o.status}
-                  </span>
-                </td>
-                <td className="py-2 text-gray-500">{o.created_at}</td>
-              </tr>
+    <div style={{ padding: '32px' }}>
+      <TableHeader title="Siparişler" count={orders.length} />
+
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            {['No', 'Müşteri', 'Ürün', 'Durum', 'Tarih'].map(h => (
+              <th key={h} style={thStyle}>{h}</th>
             ))}
-          </tbody>
-        </table>
-        {orders.length === 0 && <p className="text-gray-400 text-sm mt-2">Sipariş yok.</p>}
-      </div>
+          </tr>
+        </thead>
+        <tbody>
+          {loading ? (
+            <tr>
+              <td colSpan={5} style={{ ...tdStyle, color: 'var(--gray-400)', textAlign: 'center', padding: '32px' }}>
+                Yükleniyor...
+              </td>
+            </tr>
+          ) : orders.length === 0 ? (
+            <tr>
+              <td colSpan={5} style={{ ...tdStyle, color: 'var(--gray-400)', textAlign: 'center', padding: '32px' }}>
+                Sipariş bulunamadı
+              </td>
+            </tr>
+          ) : orders.map((o, i) => {
+            const meta = STATUS_META[o.status] || { label: o.status, dot: 'var(--gray-400)' }
+            return (
+              <tr
+                key={o.id}
+                className="animate-fade-up"
+                style={{
+                  borderBottom: '1px solid var(--gray-100)',
+                  animationDelay: `${i * 0.05}s`,
+                  opacity: 0,
+                }}
+              >
+                <td style={{ ...tdStyle, fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--gray-400)' }}>
+                  #{o.id}
+                </td>
+                <td style={{ ...tdStyle, fontWeight: 400 }}>{o.customer}</td>
+                <td style={{ ...tdStyle, color: 'var(--gray-600)' }}>{o.product}</td>
+                <td style={tdStyle}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{
+                      width: '5px', height: '5px',
+                      borderRadius: '50%',
+                      background: meta.dot,
+                      flexShrink: 0,
+                    }} />
+                    <span style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      {meta.label}
+                    </span>
+                  </div>
+                </td>
+                <td style={{ ...tdStyle, color: 'var(--gray-400)', fontSize: '11px' }}>{o.created_at}</td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
+}
+
+function TableHeader({ title, count }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      marginBottom: '24px',
+      paddingBottom: '16px',
+      borderBottom: '1px solid var(--black)',
+    }}>
+      <span style={{
+        fontFamily: "'Cormorant Garamond', serif",
+        fontSize: '20px',
+        fontWeight: 300,
+        letterSpacing: '0.05em',
+      }}>
+        {title}
+      </span>
+      <span style={{
+        fontFamily: "'DM Mono', monospace",
+        fontSize: '10px',
+        color: 'var(--gray-400)',
+        letterSpacing: '0.1em',
+      }}>
+        {count} kayıt
+      </span>
+    </div>
+  )
+}
+
+const thStyle = {
+  fontFamily: "'DM Mono', monospace",
+  fontSize: '9px',
+  letterSpacing: '0.2em',
+  textTransform: 'uppercase',
+  color: 'var(--gray-400)',
+  fontWeight: 400,
+  textAlign: 'left',
+  padding: '0 0 12px 0',
+  borderBottom: '1px solid var(--gray-200)',
+}
+
+const tdStyle = {
+  fontFamily: "'DM Mono', monospace",
+  fontSize: '12px',
+  fontWeight: 300,
+  padding: '12px 0',
+  color: 'var(--black)',
+  verticalAlign: 'middle',
 }

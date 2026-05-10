@@ -4,7 +4,7 @@ from crewai.tools import tool
 from tools import (get_orders, get_stock, get_cargo_status,
                    get_critical_stock, draft_supplier_email, cancel_order)
 
-GEMINI_LLM = "gemini/gemini-2.0-flash"
+GEMINI_LLM = "gemini/gemini-2.5-flash-lite"
 
 @tool("Sipariş Listele")
 def tool_get_orders(status: str = "") -> str:
@@ -86,8 +86,13 @@ def run_crew_query(user_message: str) -> str:
                  [tool_get_orders, tool_get_cargo, tool_cancel_order]
 
     task = Task(
-        description=f"Kullanıcı sorusu: {user_message}\nGerekli tool'ları kullanarak kısa Türkçe cevap ver.",
-        expected_output="Kısa, net Türkçe cevap.",
+        description=(
+            f"Kullanıcı sorusu: {user_message}\n"
+            "ZORUNLU: Cevap vermeden önce mutlaka ilgili tool'u çağır ve gerçek veriyi al. "
+            "Tahmin etme, 'kontrol ediyorum' gibi belirsiz cevap verme. "
+            "Tool sonucuna dayanarak kısa, net Türkçe cevap ver."
+        ),
+        expected_output="Gerçek veriye dayalı kısa Türkçe cevap. Tool çağrılmadan cevap verilmez.",
         agent=agent,
     )
     crew = Crew(agents=[agent], tasks=[task], process=Process.sequential)
